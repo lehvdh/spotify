@@ -4,8 +4,8 @@ import os
 from spotify_service import SpotifyConnector, SpotifyService
 
 playlist_ids = [
-    # "2G7UUHsjDigOjcEBPgE5NI?si=0953a39f2c5e4b78",
-    "6GGW4uy8PVDK7qHUOseF1L?si=4f124ee0fdf24fd1",
+    # "2G7UUHsjDigOjcEBPgE5NI?si=0953a39f2c5e4b78", # zweven blijf je leven
+    "6GGW4uy8PVDK7qHUOseF1L?si=4f124ee0fdf24fd1", # test
 ]
 user_id = "1138730147"
 
