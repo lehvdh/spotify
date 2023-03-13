@@ -5,6 +5,7 @@ import requests
 
 
 class SpotifyConnector(ABC):
+    @staticmethod
     def get_access_token(client_id: str, client_secret: str) -> str:
         """
         param: client_id
@@ -58,11 +59,11 @@ class SpotifyService(ABC):
 
         data = {"public": public}
 
-        requests.put(endpoint, headers=self.headers, data=data, timeout=2).json()
+        return requests.put(endpoint, headers=self.headers, data=data, timeout=2).json()
 
     def get_playlist_ids(self, playlist_ids: list) -> list:
         """
-        param: playlist_ids
+        param: playlists_ids
         """
         ids = []
         for id in playlist_ids:
@@ -90,22 +91,31 @@ class SpotifyService(ABC):
 
         return items
 
+    def get_recommendations(self, uris: list, limit: int) -> list:
+        """
+        param: seeds_tracks
+        """
+        seed_tracks = [x.replace("spotify:track:", "") for x in uris]
+        recommendations = []
+        for track in seed_tracks:
+            endpoint = (
+                f"https://api.spotify.com/v1/recommendations?"
+                f"&seed_tracks={ track.replace('spotify:track:', '')}&limit={limit}"
+            )
+            recommendations.append(
+                requests.get(endpoint, headers=self.headers, timeout=2).json()
+            )
+
+        return recommendations
+
     def add_tracks_to_playlist(self, playlist_id: str, uris: list) -> None:
         """
         param: playlist_id
         param: spotify_uris
         """
+
         endpoint = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
 
         data = {"uris": uris, "position": 0}
 
         requests.post(endpoint, headers=self.headers, data=data, timeout=2).json()
-
-    def get_recommendations(self, seed_tracks):
-        """
-        param: seeds_tracks
-        """
-        seed_tracks = [x.replace("spotify:track:", "") for x in seed_tracks]
-        endpoint = f"https://api.spotify.com/v1/recommendations?&seeds_tracks={seed_tracks}"
-
-        requests.get(endpoint, headers=self.headers, timeout=2).json()
