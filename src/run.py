@@ -1,7 +1,7 @@
 import json
 import os
 
-from spotify_service import SpotifyConnector, SpotifyService
+from .spotify_service import SpotifyConnector, SpotifyService
 
 playlist_ids = [
     # "2G7UUHsjDigOjcEBPgE5NI?si=0953a39f2c5e4b78", # zweven blijf je leven
