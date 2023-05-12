@@ -1,30 +1,6 @@
-import base64
 from abc import ABC
 
 import requests
-
-
-class SpotifyConnector(ABC):
-    @staticmethod
-    def get_access_token(client_id: str, client_secret: str) -> str:
-        """
-        param: client_id
-        param: client_secret
-        """
-        auth_url = "https://accounts.spotify.com/api/token"
-        auth_header = {}
-        auth_data = {}
-
-        message = f"{client_id}:{client_secret}"
-        base64_message = base64.b64encode(message.encode("ascii")).decode("ascii")
-
-        auth_header["Authorization"] = "Basic " + base64_message
-        auth_data["grant_type"] = "client_credentials"
-        response = requests.post(
-            auth_url, headers=auth_header, data=auth_data, timeout=2
-        ).json()
-
-        return response["access_token"]
 
 
 class SpotifyService(ABC):
@@ -46,9 +22,10 @@ class SpotifyService(ABC):
 
         data = {"name": name, "description": description, "public": public}
 
-        return requests.post(
-            endpoint, headers=self.headers, data=data, timeout=2
-        ).json()
+        response = requests.post(
+            endpoint, headers=self.headers, json=data, timeout=2
+        )
+        return response.json()
 
     def change_playlist_details(self, playlist_id: str, public: bool):
         """
@@ -59,54 +36,53 @@ class SpotifyService(ABC):
 
         data = {"public": public}
 
-        return requests.put(endpoint, headers=self.headers, data=data, timeout=2).json()
+        return requests.put(endpoint, headers=self.headers, json=data, timeout=2).json()
 
-    def get_playlist_ids(self, playlist_ids: list) -> list:
+    def get_playlist(self, playlist_id: str) -> list:
         """
-        param: playlists_ids
+        param: playlists_id
         """
-        ids = []
-        for id in playlist_ids:
-            endpoint = f"https://api.spotify.com/v1/playlists/{id}"
-            ids.append(
-                requests.get(endpoint, headers=self.headers, timeout=2).json()["id"]
-            )
+        return requests.get(
+                f"https://api.spotify.com/v1/playlists/{playlist_id}", 
+                headers=self.headers, 
+                timeout=2
+            ).json()
 
-        return ids
+    
+    def get_playlist_info(self, playlist, info_type, limit, extra_info=None):
+        ls = []
+        for item in playlist["tracks"]["items"][0:limit]:
+            item_to_add = item["track"][info_type][0][extra_info] if extra_info else item["track"][info_type]
+            ls.append(item_to_add)
+        
+        return ls
 
-    def get_playlist_track_uris(self, playlist_ids: list, limit: int) -> list:
+    def get_available_genres(self):
+        endpoint = (
+           "https://api.spotify.com/v1/recommendations/available-genre-seeds"
+        )
+        return requests.get(endpoint, headers=self.headers, timeout=2).json()
+
+    # def get_track_audio_analysis(self, id: str):
+    #     return requests.get(
+    #             f"https://api.spotify.com/v1/audio-analysis/{id}",
+    #             headers=self.headers, 
+    #             timeout=2
+    #         ).json()
+
+    def get_recommendations(self, seed_artists: list, seed_genres: list, seed_tracks: list, limit: int) -> list:
         """
-        param: playlist_ids
+        param: seed_artists
+        param: seed_tracks
+        param: seed_genres
         param: limit
         """
-        items = []
-        for id in playlist_ids:
-            endpoint = (
-                f"https://api.spotify.com/v1/playlists/{id}/tracks?&limit={limit}"
-            )
-            for item in requests.get(endpoint, headers=self.headers, timeout=2).json()[
-                "items"
-            ]:
-                items.append(item["track"]["uri"])
+        endpoint = (
+           f"https://api.spotify.com/v1/recommendations?"
+           f"&seed_artists={seed_artists}&seed_genres={seed_genres}&seed_tracks={seed_tracks}&limit={limit}"
+        )
+        return requests.get(endpoint, headers=self.headers, timeout=2).json()
 
-        return items
-
-    def get_recommendations(self, uris: list, limit: int) -> list:
-        """
-        param: seeds_tracks
-        """
-        seed_tracks = [x.replace("spotify:track:", "") for x in uris]
-        recommendations = []
-        for track in seed_tracks:
-            endpoint = (
-                f"https://api.spotify.com/v1/recommendations?"
-                f"&seed_tracks={ track.replace('spotify:track:', '')}&limit={limit}"
-            )
-            recommendations.append(
-                requests.get(endpoint, headers=self.headers, timeout=2).json()
-            )
-
-        return recommendations
 
     def add_tracks_to_playlist(self, playlist_id: str, uris: list) -> None:
         """
@@ -118,4 +94,15 @@ class SpotifyService(ABC):
 
         data = {"uris": uris, "position": 0}
 
-        requests.post(endpoint, headers=self.headers, data=data, timeout=2).json()
+        requests.put(endpoint, headers=self.headers, json=data, timeout=2).json()
+
+    def update_playlist_items(self, playlist_id: str, uris: list) -> None:
+        """
+        param: playlist_id
+        param: uris
+        """
+        endpoint = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
+
+        data = {"uris": uris, "position": 0}
+
+        requests.put(endpoint, headers=self.headers, data=data, timeout=2).json()
